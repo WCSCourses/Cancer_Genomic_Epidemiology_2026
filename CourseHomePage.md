@@ -29,7 +29,7 @@ By the end of this course, participants will be able to:
 
 | Course Date | Course Title | Location |Citation DOI |
 |-------------|--------------|----------|-------------|
-| 16–18 February 2026 | [Cancer Genomic Epidemiology](https://github.com/WCSCourses/WCSCourses-Cancer_Genomic_Epidemiology_2025) | Wellcome Genome Campus, UK | Coming soon.. |
+| 16–18 February 2026 | [Cancer Genomic Epidemiology](https://github.com/WCSCourses/Cancer_Genomic_Epidemiology_2025) | Wellcome Genome Campus, UK | Coming soon.. |
 
 ******
 
