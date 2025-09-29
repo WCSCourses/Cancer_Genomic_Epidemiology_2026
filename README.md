@@ -5,7 +5,7 @@
 ### 16–18 February 2026, Wellcome Genome Campus, UK
 
 [Wellcome Connecting Science Course Run Website Link](https://coursesandconferences.wellcomeconnectingscience.org/event/cancer-genomic-epidemiology-20260216/) <br /> 
-[Course Time Table 2025](#) <br /> 
+[Course Time Table 2026](#) <br /> 
 [Course Informatics Guide](#)
 
 ### Summary
