@@ -62,7 +62,6 @@ The programme will include lectures, seminars, and hands-on analysis sessions on
   
 **Wellcome Connecting Science Team**
 
-- [Dusanka Nikolic](https://www.wellcomeconnectingscience.org/person/nikolic-dusanka/), Senior Education Developer
 - [Liã Barbara Arruda](https://www.wellcomeconnectingscience.org/person/barbara-arruda-lia/), Education Developer
 - [Lucy Criddle](https://www.wellcomeconnectingscience.org/person/criddle-lucy/), Event and Logistics
 
