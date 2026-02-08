@@ -172,7 +172,7 @@ def generate_all_side_figures(sample,
         gene_list = [g for g in gene_list if g in valid_genes]
 
     for genee in gene_list:
-        print(genee, end = '\t')
+        print(genee)
         try :
 
             if "oncodrivefml" in tools:
@@ -184,7 +184,7 @@ def generate_all_side_figures(sample,
                     fig_gene_fml.savefig(f"{outdir}/{genee}.{sample}.oncodrivefml.pdf", bbox_inches='tight', dpi = 100)
                     plt.show()
                     plt.close()
-                    print("ofml done", end = '\t')
+                    # print("ofml done", end = '\t')
 
             if "omega_trunc" in tools:
                 if genee in omega_truncating_genes and genee in omega_missense_genes:
@@ -194,12 +194,13 @@ def generate_all_side_figures(sample,
                     fig_gene_omega.savefig(f"{outdir}/{genee}.{sample}.omega.pdf", bbox_inches='tight', dpi = 100)
                     plt.show()
                     plt.close()
-                    print("omega done", end = '\t')
+                    # print("omega done", end = '\t')
 
         except Exception as exe:
             print("failed processing of")
             print(genee)
             print(exe)
+        print("\n\n")
 
 
 
@@ -589,14 +590,14 @@ def get_all_data(sample, outdir,
                 omega_truncating = omega_data[omega_data["impact"] == "truncating"].reset_index(drop = True)[["gene", "dnds", "pvalue", "lower", "upper"]]
                 omega_truncating.columns = ["GENE", "omega_trunc", "pvalue", "lower", "upper"]
                 truncating_decreasing = list(omega_truncating.sort_values("omega_trunc", ascending= False)["GENE"].values)
-                print("Truncating\n", truncating_decreasing)
+                # print("Truncating\n", truncating_decreasing)
                 available_tracks.append("omega_trunc")
 
             if "omega_mis" in tracks:
                 omega_missense = omega_data[omega_data["impact"] == "missense"].reset_index(drop = True)[["gene", "dnds", "pvalue", "lower", "upper"]]
                 omega_missense.columns = ["GENE", "omega_mis", "pvalue", "lower", "upper"]
                 missense_decreasing = list(omega_missense.sort_values("omega_mis", ascending= False)["GENE"].values)
-                print("Missense\n", missense_decreasing)
+                # print("Missense\n", missense_decreasing)
                 available_tracks.append("omega_mis")
 
             # merge omegas to decide sorting if both are available
@@ -610,7 +611,7 @@ def get_all_data(sample, outdir,
                 if "ALL_GENES" in global_omega_decreasing:
                     global_omega_decreasing.remove("ALL_GENES")
 
-                print("Global\n", global_omega_decreasing)
+                # print("Global\n", global_omega_decreasing)
                 if len(global_omega_decreasing) > 20:
                     print("Keeping top 20 genes")
                     global_omega_decreasing = global_omega_decreasing[:20]
@@ -623,13 +624,13 @@ def get_all_data(sample, outdir,
                                                         ]["GENE"].values
 
                 all_positively_selected = set(positively_selected_trunc).union(set(positively_selected_mis))
-                print( "all_positively_selected", sorted(all_positively_selected))
+                # print( "all_positively_selected", sorted(all_positively_selected))
                 positively_selected_both = set(positively_selected_trunc).intersection(set(positively_selected_mis))
-                print( "positively_selected_both", sorted(positively_selected_both))
+                # print( "positively_selected_both", sorted(positively_selected_both))
                 positively_selected_trunc_only = set(positively_selected_trunc) - set(positively_selected_mis)
-                print( "positively_selected_trunc_only", sorted(positively_selected_trunc_only))
+                # print( "positively_selected_trunc_only", sorted(positively_selected_trunc_only))
                 positively_selected_mis_only = set(positively_selected_mis) - set(positively_selected_trunc)
-                print( "positively_selected_mis_only", sorted(positively_selected_mis_only))
+                # print( "positively_selected_mis_only", sorted(positively_selected_mis_only))
             elif omega_truncating is not None:
                 global_omega_decreasing = list(omega_truncating.sort_values("omega_trunc", ascending=False)["GENE"].values)
                 if "ALL_GENES" in global_omega_decreasing:
@@ -700,6 +701,7 @@ def get_counts_per_position_n_consequence(somatic_maf_file):
     somatic_maf_clean = somatic_maf[(somatic_maf["TYPE"] == 'SNV')
                                     & (~somatic_maf["FILTER.not_in_exons"])
                                     & (somatic_maf['canonical_Protein_position'] != '-')
+                                    & (somatic_maf['canonical_Consequence_broader'].isin(['nonsense', 'missense', 'synonymous']))
                                     ].reset_index(drop = True)
     somatic_maf_clean['canonical_Protein_position'] = somatic_maf_clean['canonical_Protein_position'].astype(int)
     counts_per_position = somatic_maf_clean.groupby(by = ["SAMPLE_ID", "canonical_SYMBOL", 'canonical_Consequence_broader', 'canonical_Protein_position'])['ALT_DEPTH'].size().to_frame('Count').reset_index()
