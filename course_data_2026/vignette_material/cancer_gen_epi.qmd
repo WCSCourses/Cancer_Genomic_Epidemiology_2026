@@ -1,0 +1,237 @@
+---
+title: "Using methylation to infer exposure patterns"
+subtitle: "Cancer Genetic Epidemiology course 2026"
+author: 
+  - name: "Jose A. Seoane - joseaseoane@vhio.net "
+    affiliation:
+      name: "Cancer Computational biology lab - VHIO"
+      url: "https://cancercompbiolab.github.io"
+format: 
+  html:
+    toc: true
+    toc-location: left
+    toc-depth: 3
+    toc-title: <img src="pretty_reports/CCB_light_175.png">
+    include-in-header:
+     - text: |
+        <link rel = "shortcut icon" href = "pretty_reports/CCB_light.png" />
+    theme:
+      light: flatly
+      dark: darkly
+    css: pretty_reports/style_quarto.css
+    number-depth: 2
+    number-sections: true
+    code-fold: false
+    code-tools: false
+    df-print: paged
+    fig-width: 12
+    fig-height: 8
+    self-contained: true
+execute:
+  warning: false
+editor: visual
+---
+
+In this document we will explore a vignette on how to use the methodology explained in the course. We will use R and a set of packages available in CRAN or Bioconductor. You can reproduce the analysis with the code attached and analyze your favorite exposure.
+
+# Developing the exposure signature
+
+The first step to develop the exposure signature is to identify the exposure or trait you want to analyse. For doing that, you will need the CpGs associated with the exposure, and the effect size from the EWAS. You can retrieve directly from the EWAS paper , but also you can explore several traits using on-line databases such as the EWAS Catalog from the University of Bristol.
+
+## Downloading the EWAS catalog
+
+```{r}
+library(downloader)
+url_data = "https://www.ewascatalog.org/static//docs/ewascatalog-results.txt.gz"
+dest_file = "EWAScatalog-results.txt.gz"
+url_metadata = "https://www.ewascatalog.org/static//docs/ewascatalog-studies.txt.gz"
+dest_file_meta = "ewascatalog-studies.txt.gz"
+
+
+#download(url_data, dest_file, mode = "w", progress = TRUE)
+#download(url_metadata, dest_file_meta, mode = "w", progress = TRUE)
+
+ewas_data = read.table("ewascatalog-results.txt.gz",header = T,sep = "\t",stringsAsFactors = F)
+ewas_metadata = read.table("ewascatalog-studies.txt.gz",header = T, sep="\t",stringsAsFactors = F,quote = '"')
+
+arsenic_exposure_studies = ewas_metadata$StudyID[which(ewas_metadata$Exposure=="Arsenic exposure")]
+
+ewas_data[which(ewas_data$StudyID == arsenic_exposure_studies[3]),c("CpG","Gene","Beta","P","StudyID")]
+
+```
+
+Lets define a signature from the literature, using a refined smoking signature (<https://pmc.ncbi.nlm.nih.gov/articles/PMC6861351/>),and a PM2.5 from EWAS of pollution (<https://pmc.ncbi.nlm.nih.gov/articles/PMC6754789/>). We have already available the signatures in the file Pheno_cge.csv
+
+Here is the smoking signature
+
+```{r}
+Pheno = read.csv("Pheno_cge.csv", header=TRUE)
+Pheno[which(Pheno$Trait=="smoking_sm13"),c("CpG", "Beta", "Trait")]
+```
+
+And here the PM2.5 signature
+
+```{r}
+
+Pheno[which(Pheno$Trait=="pm2_5"),c("CpG", "Beta", "Trait")]
+```
+
+## Calculating the signature
+
+Now, we will define the way we calculate the methylation signature. This is just a linear combination of the size effect of the EWAS and the
+
+$$
+\begin{equation}
+MethSign_{Trait_A} = \sum_{i=1}^m \beta_i DNAm_{CpG_i} 
+\end{equation}
+$$ which is literally a matrix product of the matrix of methylation beta values from the sample and the matrix of the effect sizes (in this case is a vector), and in R is implemented with the operator %\*%.
+
+```{r}
+calcMRS = function(mat,Traits,trait){
+  cpgs = Traits$CpG[which(Traits$Trait==trait)]
+  bets = Traits$Beta[which(Traits$Trait==trait)]
+
+  xx=data.frame(beta=bets,row.names = cpgs)
+
+
+  return(t(mat[rownames(xx),]) %*% as.matrix(xx))
+}
+
+```
+
+# Validation of the signature
+
+In order to see if this is reflecting the real exposure, we can validate the signatures in dataset where we have the exposure.
+
+## PM2.5 dataset
+
+For example, in the dataset from GEO GSE289816 (https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE289816) we have methylation data from blood student of The University of Pirrsburg, which a median PM2.5 exposure of 12.1 ug/m3 and from students from the University of British Columnbia, with a median exposure of 5.1ug/m3. We will compare the methylation signature of PM2.5 with these two groups.
+
+```{r}
+
+met_mat_PM  <- readRDS("GSE289816_CGE.RDS") 
+pheno_pm = read.table("GSE289816_clinic_patient.csv",header = T,sep = ",")
+
+
+
+pm_signature = calcMRS(met_mat_PM,Pheno,"pm2_5")
+pheno_pm$PM_signature = pm_signature[,"beta"]
+
+library(ggpubr)
+ggboxplot(pheno_pm,x = "cohort.ch1",y="PM_signature" )+stat_compare_means()
+
+
+```
+
+## Smoking dataset
+
+Similarly, in the dataset GSE50660 (https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE50660 ), available from the publication (https://pmc.ncbi.nlm.nih.gov/articles/PMC4623553/), we have a 465 samples database with methylation and smoking status (Current, former or never smoker). We will compare the smoking signature agaisnt these tree groups.
+
+```{r}
+met_mat_smk  <- readRDS("GSE50660_CGE.RDS") 
+
+pheno_smk = read.table("pData_GSE50660.csv",header = T,sep = ",")
+
+
+
+smk_signature = calcMRS(met_mat_smk,Pheno,"smoking_sm13")
+pheno_smk$smk_signature = smk_signature[,"beta"]
+
+
+ggboxplot(pheno_smk,x = "smoking",y="smk_signature" )+
+  stat_compare_means(comparisons = list(c("0","1"),c("1","2")))+
+  scale_x_discrete(labels=c("0"="Never",
+                            "1"="Former",
+                            "2"="Current"))
+
+
+```
+
+# Association of the signatures with early onset
+
+## Downloading TCGA data
+
+TCGA data can we downloaded using this code. however, in order to facilitate the demo, we will use an already preprocessed methylation file from TCGA COAD the CpGs that we need (TCGA_COAD_Age_adj_cge.rds).
+
+```{r}
+# library(TCGAbiolinks)
+# query <- GDCquery(project = "TCGA-COAD",   # "TCGA-READ"
+#                   data.category = "Clinical",
+#                   data.type = "Clinical Supplement")
+# GDCdownload(query)
+# clinical.BCRtab.all <- GDCprepare(query)
+# clinic <- as.data.frame(clinical.BCRtab.all$clinical_patient_coad)
+# #write.csv(clinic, "COAD_clinic.csv", row.names = F)
+# 
+# 
+# library(TCGAbiolinks)
+# 
+# query_met <- GDCquery(
+#   project = "TCGA-COAD",  # "TCGA-READ"
+#   data.category = "DNA Methylation",
+#   data.type = "Methylation Beta Value",
+#   platform = "Illumina Human Methylation 450")
+# 
+# 
+# GDCdownload(query_met)
+# met <- GDCprepare(query_met, summarizedExperiment=T)
+#saveRDS(met,"TCGA_met_COAD.rds")
+met_mat_M  <- readRDS("TCGA_COAD_Age_adj_cge.rds")   
+met_mat_M[1:10,1:5]
+```
+
+Note that the values are Betas (0, non methylated \< Beta \< 1, methylated).
+
+Now we will use the TCGA clinical data, that we have already prepared for the demo in the file "Clinic_Coad.csv", and define early onset as \<50 yo and late onset as \>70 yo.
+
+```{r}
+clinic <- read.csv("Clinic_Coad.csv", header=T)
+clinic$EOCRC = as.factor(ifelse(clinic$age < 50 , 1,
+                                ifelse(clinic$age >=70, 0, NA)))
+clinic <- clinic[complete.cases(clinic$EOCRC), ]
+met_mat_M <- met_mat_M[, colnames(met_mat_M) %in% clinic$ID]
+
+```
+
+## Calculate the signature
+
+```{r}
+
+
+sign_pm25 = calcMRS(met_mat_M,Pheno,"pm2_5")
+sign_smoking = calcMRS(met_mat_M,Pheno,"smoking_sm13")
+
+clinic$sign_pm25 = sign_pm25[match(clinic$ID,rownames(sign_pm25)),1]
+clinic$sign_smoking = sign_smoking[match(clinic$ID,rownames(sign_smoking)),1]
+
+
+
+```
+
+## Correlation of smoking with early onset
+
+Let see how the exposome signatures of PM2.5 and smoking correlate with early onset.
+
+```{r}
+library(ggpubr)
+ggboxplot(clinic,x = "CRCcat",y="sign_smoking", )+stat_compare_means()
+
+```
+
+Smoking is higher in the early onset samples.
+
+## Correlation of pm2.5 with early onset
+
+```{r}
+ggboxplot(clinic,x = "CRCcat",y="sign_pm25" )+stat_compare_means()
+```
+
+Small particle matter is also higher in early-onset.
+
+Further details of the data processing and methodology can be found in our group github
+
+<https://github.com/CancerCompBioLab/EOCRCexposome/>
+
+And in the preprint
+
+<https://www.researchsquare.com/article/rs-4528579>
