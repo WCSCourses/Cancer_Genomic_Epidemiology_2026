@@ -18,7 +18,7 @@ This means you can run the demo without installing software on your own machine.
 
 Click the link below:
 
-👉https://colab.research.google.com/github/WCSCourses/Cancer_Genomic_Epidemiology_2026/blob/main/course_modules_2026/Mutational_Signatures_Demo/Mutational_Signatures_Demo.ipynb
+👉 [Open in Google Colab](https://colab.research.google.com/github/WCSCourses/Cancer_Genomic_Epidemiology_2026/blob/main/course_modules_2026/Mutational_Signatures_Demo/CancerGenomicEpidemiology_Mutational_Signatures_Demo.ipynb)
 
 ---
 
